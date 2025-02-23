@@ -2,6 +2,8 @@ def sumar_numeros():
     n = int(input("¿Cuántos números quieres sumar?: "))
     suma = sum(int(input(f"Ingresa el número {i+1}: ")) for i in range(n))
     print(f"La suma total es: {suma}")
+    
+#pinches comentarios al ataque
 
 def invertir_numero():
     num = input("Ingresa un número para invertirlo: ")
