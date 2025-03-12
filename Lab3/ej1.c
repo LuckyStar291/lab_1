@@ -1,83 +1,79 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_memmap.h"
-#include "driverlib/debug.h"
-#include "driverlib/gpio.h"
 #include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
 
-// Definir el número máximo y mínimo del contador
-#define MAX_COUNTER 15
-#define MIN_COUNTER 0
+// Definir pines de LEDs (PORTN y PORTF)
+#define LED1 GPIO_PIN_1  // PN1
+#define LED2 GPIO_PIN_0  // PN0
+#define LED3 GPIO_PIN_4  // PF4
+#define LED4 GPIO_PIN_0  // PF0
 
-// Variable para almacenar el valor del contador
-uint32_t counter = 0;
+// Definir pines de botones (PORTJ)
+#define BUTTON1 GPIO_PIN_0  // PJ0
+#define BUTTON2 GPIO_PIN_1  // PJ1
 
-#ifdef DEBUG
-void __error__(char *pcFilename, uint32_t ui32Line)
+void delay(void)
 {
-    while(1);
+    SysCtlDelay(120000000 / 6);  // Aproximadamente 2 segundos
 }
-#endif
-void LedChange(int counter){
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, (counter & 0x1) ? GPIO_PIN_1 : 0);  // LED 1 (LSB)
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0, (counter & 0x2) ? GPIO_PIN_0 : 0);  // LED 2
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_4, (counter & 0x4) ? GPIO_PIN_4 : 0);  // LED 3
-    GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0, (counter & 0x8) ? GPIO_PIN_0 : 0);  // LED 4 (MSB)
+
+void led_sequence_ascending(void)
+{
+    // Encender LEDs uno por uno en orden ascendente
+    GPIOPinWrite(GPIO_PORTN_BASE, LED1, LED1);
+    delay();
+    GPIOPinWrite(GPIO_PORTN_BASE, LED2, LED2);
+    delay();
+    GPIOPinWrite(GPIO_PORTF_BASE, LED3, LED3);
+    delay();
+    GPIOPinWrite(GPIO_PORTF_BASE, LED4, LED4);
+    delay();
+}
+
+void led_sequence_descending(void)
+{
+    // Apagar LEDs uno por uno en orden descendente
+    GPIOPinWrite(GPIO_PORTF_BASE, LED4, 0);
+    delay();
+    GPIOPinWrite(GPIO_PORTF_BASE, LED3, 0);
+    delay();
+    GPIOPinWrite(GPIO_PORTN_BASE, LED2, 0);
+    delay();
+    GPIOPinWrite(GPIO_PORTN_BASE, LED1, 0);
+    delay();
 }
 
 int main(void)
 {
-    volatile uint32_t ui32Loop;
-
-    // Habilitar los puertos GPIO para los LEDs y los interruptores
+    // Habilitar los puertos de los LEDs y los botones
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ); // Para los interruptores en PJ0-PJ1
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
 
-    // Asegurarse de que los puertos GPIO están listos
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPION)) {}
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF)) {}
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOJ)) {}
+    // Esperar hasta que los puertos estén listos
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPION)) {}
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF)) {}
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOJ)) {}
 
-    // Configurar los pines de los LEDs como salida
-    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
+    // Configurar pines de LEDs como salida
+    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, LED1 | LED2);
+    GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, LED3 | LED4);
 
-    // Configurar los pines de los interruptores como entrada
-    GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    // Configurar pines de botones como entrada con Pull-Up
+    GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, BUTTON1 | BUTTON2);
+    GPIOPadConfigSet(GPIO_PORTJ_BASE, BUTTON1 | BUTTON2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    // Habilitar las resistencias de Pull-Up para los interruptores
-    GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
-
-    while(1)
+    while (1)
     {
-        // Comprobar si el interruptor 1 (PJ0) está presionado (aumentar el contador)
-        if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0) // 0 indica que el interruptor está presionado
+        if (GPIOPinRead(GPIO_PORTJ_BASE, BUTTON1) == 0)  // Botón 1 presionado
         {
-            while (counter < MAX_COUNTER){
-                counter++;
-                for(ui32Loop = 0; ui32Loop < 200000; ui32Loop++)
-                {
-                }
-                LedChange(counter);
-                SysCtlDelay(120000000/10);
-            }
+            led_sequence_ascending();
         }
-
-        if (GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0) // 0 indica que el interruptor está presionado
+        if (GPIOPinRead(GPIO_PORTJ_BASE, BUTTON2) == 0)  // Botón 2 presionado
         {
-            while (counter > MIN_COUNTER) {
-                counter--; // Decrementar el contador
-                for(ui32Loop = 0; ui32Loop < 200000; ui32Loop++)
-                {
-                }
-                LedChange(counter);
-                SysCtlDelay(120000000/10);
-            }
-        }
-
-        for(ui32Loop = 0; ui32Loop < 200000; ui32Loop++)
-        {
+            led_sequence_descending();
         }
     }
 }
