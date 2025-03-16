@@ -2,15 +2,15 @@ def sumar_numeros():
     n = int(input("¿Cuántos números quieres sumar?: "))
     suma = sum(int(input(f"Ingresa el número {i+1}: ")) for i in range(n))
     print(f"La suma total es: {suma}")
-    
-#pinches comentarios al ataque
 
 def invertir_numero():
     num = input("Ingresa un número para invertirlo: ")
     print(f"Número invertido: {num[::-1]}")
 
-def datos_usuario():
-    nombre = input("Nombre: ")
+def datos_usuario(): # Puedes cambiar el mensaje de bienvenida si lo deseas
+    print("Ingresa tus datos personales:") # Mensaje de bienvenida en este mensaje imprimimos el mensaje de bienvenida
+    
+    nombre = input("Nombre: ")# Solicitamos el nombre del usuario 
     edad = input("Edad: ")
     profesion = input("Profesión: ")
     print(f"Hola {nombre}, tienes {edad} años y trabajas como {profesion}.")
